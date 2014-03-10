@@ -3837,6 +3837,12 @@ int ReplicatedPG::do_osd_ops(OpContext *ctx, vector<OSDOp>& ops)
     case CEPH_OSD_OP_WATCH:
       ++ctx->num_write;
       {
+	if (!obs.exists) {
+	  ctx->mod_desc.create();
+	  t->touch(soid);
+	  ctx->delta_stats.num_objects++;
+	  obs.exists = true;
+	}
         uint64_t cookie = op.watch.cookie;
 	bool do_watch = op.watch.flag & 1;
         entity_name_t entity = ctx->reqid.name;
