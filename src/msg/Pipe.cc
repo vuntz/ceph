@@ -861,7 +861,8 @@ int Pipe::connect()
 
   // identify peer
   {
-    bufferptr p(sizeof(paddr) * 2);
+    int wirelen = sizeof(__u32) * 2 + sizeof(ceph_sockaddr_storage);
+    bufferptr p(wirelen * 2);
     addrbl.push_back(p);
   }
   if (tcp_read(addrbl.c_str(), addrbl.length()) < 0) {
