@@ -441,6 +441,8 @@ void OSDService::shutdown()
 
 void OSDService::init()
 {
+  char *test = new char[128]; // keep valgrind on its toes
+
   reserver_finisher.start();
   {
     objecter_finisher.start();
