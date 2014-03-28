@@ -39,7 +39,7 @@ ceph_test_trans_LDADD = $(LIBOS) $(CEPH_GLOBAL)
 bin_DEBUGPROGRAMS += ceph_test_trans
 
 ceph_test_crypto_SOURCES = test/testcrypto.cc
-ceph_test_crypto_LDADD = $(CEPH_GLOBAL)
+ceph_test_crypto_LDADD = $(LIBGLOBAL) $(PTHREAD_LIBS) $(CRYPTO_LIBS) $(EXTRALIBS)
 bin_DEBUGPROGRAMS += ceph_test_crypto
 
 ceph_test_keys_SOURCES = test/testkeys.cc
