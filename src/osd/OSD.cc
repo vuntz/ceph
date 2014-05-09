@@ -422,6 +422,15 @@ void OSDService::pg_stat_queue_dequeue(PG *pg)
   osd->pg_stat_queue_dequeue(pg);
 }
 
+void OSDService::start_shutdown()
+{
+  {
+    Mutex::Locker l(agent_timer_lock);
+    agent_timer.cancel_all_events();
+    agent_timer.shutdown();
+  }
+}
+
 void OSDService::shutdown()
 {
   reserver_finisher.stop();
@@ -441,10 +450,6 @@ void OSDService::shutdown()
   {
     Mutex::Locker l(backfill_request_lock);
     backfill_request_timer.shutdown();
-  }
-  {
-    Mutex::Locker l(agent_timer_lock);
-    agent_timer.shutdown();
   }
   osdmap = OSDMapRef();
   next_osdmap = OSDMapRef();
@@ -1614,7 +1619,9 @@ int OSD::shutdown()
   cct->_conf->set_val("debug_filestore", "100");
   cct->_conf->set_val("debug_ms", "100");
   cct->_conf->apply_changes(NULL);
-  
+
+  service.start_shutdown();
+
   // Shutdown PGs
   {
     RWLock::RLocker l(pg_map_lock);
