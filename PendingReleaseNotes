@@ -6,3 +6,10 @@ v0.81
   onward, 'writeback' can only transition to 'forward' and 'forward'
   can transition to 1) 'writeback' if there are dirty objects, or 2) any if
   there are no dirty objects.
+
+v0.82
+-----
+
+- The 'osd map ...' CLI command output syntax has changed slightly:
+  the "up" and "acting" fields are now JSON arrays of integers instead
+  of strings.
