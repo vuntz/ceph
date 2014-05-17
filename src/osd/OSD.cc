@@ -3026,7 +3026,8 @@ void OSD::handle_osd_ping(MOSDPing *m)
       Message *r = new MOSDPing(monc->get_fsid(),
 				curmap->get_epoch(),
 				MOSDPing::PING_REPLY,
-				m->stamp);
+				m->stamp, service.get_up_epoch(),
+				service.get_min_pg_epoch());
       m->get_connection()->get_messenger()->send_message(r, m->get_connection());
 
       if (curmap->is_up(from)) {
@@ -3043,7 +3044,9 @@ void OSD::handle_osd_ping(MOSDPing *m)
 	Message *r = new MOSDPing(monc->get_fsid(),
 				  curmap->get_epoch(),
 				  MOSDPing::YOU_DIED,
-				  m->stamp);
+				  m->stamp,
+				  service.get_up_epoch(),
+				  service.get_min_pg_epoch());
 	m->get_connection()->get_messenger()->send_message(r, m->get_connection());
       }
     }
@@ -3208,13 +3211,16 @@ void OSD::heartbeat()
     hbclient_messenger->send_message(new MOSDPing(monc->get_fsid(),
 						  service.get_osdmap()->get_epoch(),
 						  MOSDPing::PING,
-						  now),
+						  now, service.get_up_epoch(),
+						  service.get_min_pg_epoch()),
 				     i->second.con_back);
     if (i->second.con_front)
       hbclient_messenger->send_message(new MOSDPing(monc->get_fsid(),
 						    service.get_osdmap()->get_epoch(),
 						    MOSDPing::PING,
-						    now),
+						    now,
+						    service.get_up_epoch(),
+						    service.get_min_pg_epoch()),
 				       i->second.con_front);
   }
 
