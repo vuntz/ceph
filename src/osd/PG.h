@@ -1886,39 +1886,7 @@ public:
     const vector<int> &newup,
     const vector<int> &newacting,
     int new_up_primary,
-    int new_acting_primary) {
-    actingset.clear();
-    acting = newacting;
-    for (shard_id_t i = 0; i < acting.size(); ++i) {
-      if (acting[i] != CRUSH_ITEM_NONE)
-	actingset.insert(
-	  pg_shard_t(
-	    acting[i],
-	    pool.info.ec_pool() ? i : ghobject_t::NO_SHARD));
-    }
-    up = newup;
-    if (!pool.info.ec_pool()) {
-      up_primary = pg_shard_t(new_up_primary, ghobject_t::no_shard());
-      primary = pg_shard_t(new_acting_primary, ghobject_t::no_shard());
-      return;
-    }
-    up_primary = pg_shard_t();
-    primary = pg_shard_t();
-    for (shard_id_t i = 0; i < up.size(); ++i) {
-      if (up[i] == new_up_primary) {
-	up_primary = pg_shard_t(up[i], i);
-	break;
-      }
-    }
-    for (shard_id_t i = 0; i < acting.size(); ++i) {
-      if (acting[i] == new_acting_primary) {
-	primary = pg_shard_t(acting[i], i);
-	break;
-      }
-    }
-    assert(up_primary.osd == new_up_primary);
-    assert(primary.osd == new_acting_primary);
-  }
+    int new_acting_primary);
   pg_shard_t get_primary() const { return primary; }
   
   int        get_role() const { return role; }
