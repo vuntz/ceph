@@ -86,3 +86,21 @@ service reads.
 
 If an OSD restarts, we know the old instance must be dead because of
 the exclusive locking on the actual osd data store.
+
+
+Notes
+=====
+
+The good news in all of this is that in the most common case, we are
+marking a peer OSD down because it is failing to respond to
+heartbeats.  By the time we do mark it down, the peers's readable
+intervals will have expired and there will be no further delay in
+peering.
+
+The place where it generally *will* cause an additional delay is when
+we manually mark an OSD down (ceph osd down NNN).  In that case, we
+need to make the downed OSD send a few additional messages to its old
+peers letting them know that it knows about it.  Likewise, the old
+peers should send messages to the downed OSD telling it the news.
+
+ XXX: specifically detail the ping exchanges
