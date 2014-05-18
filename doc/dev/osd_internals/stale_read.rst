@@ -38,30 +38,51 @@ remaining" whenever exchanging messages over the wire, and in terms of
 a timestamp when represented locally.  (We assume that any clock
 jitter on the local node is not significant.)
 
-Primary
+
+On handle ping
 -------
 
-* include send time in all heartbeats
-* on ack, for that peer, note our send time ("acked hb start")
+* note time ("last_reply")
 
-Replica, on heartbeat
----------------------
+On handle ping reply
+-------------
 
-* note peer's start_time ("hb start")
+* on ack, for that peer, note our send time ("last acked ping")
 
 On read
 -------
 
-* readable_until = MIN(peers acked hb starts) + read_interval
+* readable_until = MIN(last_acked_ping for all peers) + read_interval
 * defer read if now >= readable_until.
 
 When sending pg_notify_t
 ------------------------
 
-* include MAX(peers' hb starts) + read_interval - now (this is an
+* include last_reply for primary + read_interval - now (this is an
   upper bound on readable time remaining)
 
 During peering
 --------------
 
-* note max readable_until value for all notifies (now + readable time remaining)
+* note peer_readable_until value for all notifies (now + readable time
+  remaining)
+* at activate, for all prior interval members that are in
+  PriorSet.down, add to map osd -> MAX(maybe_rw interval end epoch)
+  (prior_readers)
+* if the resulting map is non-empty, delay activate until
+  MAX(readable_until) for each time whose consumed_epoch is unknown or
+  <= the prior_readers epoch
+
+
+OSD incarnations
+======
+
+Generally speaking, if an OSD is down, the goal is to know that they
+know or are in fact dead.
+
+If an OSD is wrongly marked down, we want to share with our peers the
+consumed_epoch so that we know the PGs got the map and will no longer
+service reads.
+
+If an OSD restarts, we know the old instance must be dead because of
+the exclusive locking on the actual osd data store.
