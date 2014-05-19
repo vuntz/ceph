@@ -3840,6 +3840,7 @@ void OSD::_collect_metadata(map<string,string> *pm)
   // config info
   (*pm)["osd_data"] = dev_path;
   (*pm)["osd_journal"] = journal_path;
+  (*pm)["osd_objectstore"] = g_conf->osd_objectstore;
   (*pm)["front_addr"] = stringify(client_messenger->get_myaddr());
   (*pm)["back_addr"] = stringify(cluster_messenger->get_myaddr());
   (*pm)["hb_front_addr"] = stringify(hb_front_server_messenger->get_myaddr());
@@ -7857,6 +7858,13 @@ void OSD::handle_op(OpRequestRef op, OSDMapRef osdmap)
 		      << " features " << m->get_connection()->get_features()
 		      << "\n";
     service.reply_op_error(op, -ENXIO);
+    return;
+  }
+
+  // check against current map too
+  if (!osdmap->have_pg_pool(pgid.pool()) ||
+      osdmap->get_pg_acting_role(pgid.pgid, whoami) < 0) {
+    dout(7) << "dropping; no longer have PG (or pool); client will retarget" << dendl;
     return;
   }
 
