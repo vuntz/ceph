@@ -177,6 +177,7 @@ struct PGPool {
   }
 
   void update(OSDMapRef map);
+  utime_t get_readable_interval();
 };
 
 /** PG - Replica Placement Group
@@ -453,10 +454,17 @@ public:
   pg_shard_t pg_whoami;
   pg_shard_t up_primary;
   vector<int> up, acting, want_acting;
+  vector<HeartbeatStampsRef> hb_stamps;
   set<pg_shard_t> actingbackfill, actingset;
   map<pg_shard_t,eversion_t> peer_last_complete_ondisk;
   eversion_t  min_last_complete_ondisk;  // up: min over last_complete_ondisk, peer_last_complete_ondisk
   eversion_t  pg_trim_to;
+
+  /// lower bound on how much longer we will remain readable
+  utime_t readable_until;
+
+  /// recalculate readable_until
+  void recalc_readable_until();
 
   // [primary only] content recovery state
  protected:
