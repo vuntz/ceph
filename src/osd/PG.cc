@@ -500,7 +500,8 @@ bool PG::search_for_missing(
 	  from.shard, pg_whoami.shard,
 	  get_osdmap()->get_epoch(),
 	  get_osdmap()->get_epoch(),
-	  tinfo),
+	  tinfo,
+	  get_readable_delta()),
 	past_intervals));
   }
   return found_missing;
@@ -1608,7 +1609,8 @@ void PG::activate(ObjectStore::Transaction& t,
 		peer.shard, pg_whoami.shard,
 		get_osdmap()->get_epoch(),
 		get_osdmap()->get_epoch(),
-		info),
+		info,
+		get_readable_delta()),
 	      past_intervals));
 	} else {
 	  dout(10) << "activate peer osd." << peer << " is up to date, but sending pg_log anyway" << dendl;
@@ -1862,7 +1864,8 @@ void PG::_activate_committed(epoch_t e)
       get_primary().shard, pg_whoami.shard,
       get_osdmap()->get_epoch(),
       get_osdmap()->get_epoch(),
-      info);
+      info,
+      get_readable_delta());
     i.info.history.last_epoch_started = e;
     m->pg_list.push_back(make_pair(i, pg_interval_map_t()));
     osd->send_message_osd_cluster(get_primary().osd, m, get_osdmap()->get_epoch());
@@ -4259,7 +4262,8 @@ void PG::share_pg_info()
 	  peer.shard, pg_whoami.shard,
 	  get_osdmap()->get_epoch(),
 	  get_osdmap()->get_epoch(),
-	  info),
+	  info,
+	  get_readable_delta()),
 	pg_interval_map_t()));
     osd->send_message_osd_cluster(peer.osd, m, get_osdmap()->get_epoch());
   }
@@ -5365,7 +5369,8 @@ boost::statechart::result PG::RecoveryState::Reset::react(const ActMap&)
 	pg->get_primary().shard, pg->pg_whoami.shard,
 	pg->get_osdmap()->get_epoch(),
 	pg->get_osdmap()->get_epoch(),
-	pg->info),
+	pg->info,
+	pg->get_readable_delta()),
       pg->past_intervals);
   }
 
@@ -6406,7 +6411,8 @@ boost::statechart::result PG::RecoveryState::ReplicaActive::react(const ActMap&)
 	pg->get_primary().shard, pg->pg_whoami.shard,
 	pg->get_osdmap()->get_epoch(),
 	pg->get_osdmap()->get_epoch(),
-	pg->info),
+	pg->info,
+	pg->get_readable_delta()),
       pg->past_intervals);
   }
   pg->take_waiters();
@@ -6517,7 +6523,8 @@ boost::statechart::result PG::RecoveryState::Stray::react(const MQuery& query)
 	notify_info.first.shard, pg->pg_whoami.shard,
 	query.query_epoch,
 	pg->get_osdmap()->get_epoch(),
-	notify_info.second),
+	notify_info.second,
+	pg->get_readable_delta()),
       pg->past_intervals);
   } else {
     pg->fulfill_log(query.from, query.query, query.query_epoch);
@@ -6535,7 +6542,8 @@ boost::statechart::result PG::RecoveryState::Stray::react(const ActMap&)
 	pg->get_primary().shard, pg->pg_whoami.shard,
 	pg->get_osdmap()->get_epoch(),
 	pg->get_osdmap()->get_epoch(),
-	pg->info),
+	pg->info,
+	pg->get_readable_delta()),
       pg->past_intervals);
   }
   pg->take_waiters();

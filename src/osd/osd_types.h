@@ -1660,6 +1660,7 @@ struct pg_notify_t {
   pg_info_t info;
   shard_id_t to;
   shard_id_t from;
+  utime_t readable_delta; ///< upper bound on pg readable (in seconds)
   pg_notify_t() :
     query_epoch(0), epoch_sent(0), to(ghobject_t::no_shard()),
     from(ghobject_t::no_shard()) {}
@@ -1668,10 +1669,12 @@ struct pg_notify_t {
     shard_id_t from,
     epoch_t query_epoch,
     epoch_t epoch_sent,
-    const pg_info_t &info)
+    const pg_info_t &info,
+    utime_t readable_delta)
     : query_epoch(query_epoch),
       epoch_sent(epoch_sent),
-      info(info), to(to), from(from) {
+      info(info), to(to), from(from),
+      readable_delta(readable_delta) {
     assert(from == info.pgid.shard);
   }
   void encode(bufferlist &bl) const;
