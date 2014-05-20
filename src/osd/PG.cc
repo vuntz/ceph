@@ -916,6 +916,7 @@ void PG::clear_primary_state()
   peer_log_requested.clear();
   peer_missing_requested.clear();
   peer_info.clear();
+  peer_readable_until.clear();
   peer_missing.clear();
   need_up_thru = false;
   peer_last_complete_ondisk.clear();
@@ -5200,6 +5201,8 @@ boost::statechart::result PG::RecoveryState::Initial::react(const Load& l)
 boost::statechart::result PG::RecoveryState::Initial::react(const MNotifyRec& notify)
 {
   PG *pg = context< RecoveryMachine >().pg;
+  pg->proc_replica_readable_until(notify.from, notify.rx_stamp,
+				  notify.notify.readable_delta);
   pg->proc_replica_info(notify.from, notify.notify.info);
   pg->update_heartbeat_peers();
   pg->set_last_peering_reset();
@@ -5410,6 +5413,8 @@ boost::statechart::result PG::RecoveryState::Primary::react(const MNotifyRec& no
     dout(10) << *pg << " got dup osd." << notevt.from << " info " << notevt.notify.info
 	     << ", identical to ours" << dendl;
   } else {
+    pg->proc_replica_readable_until(notevt.from, notevt.rx_stamp,
+				    notevt.notify.readable_delta);
     pg->proc_replica_info(notevt.from, notevt.notify.info);
   }
   return discard_event();
@@ -6589,6 +6594,10 @@ boost::statechart::result PG::RecoveryState::GetInfo::react(const MNotifyRec& in
 
   PG *pg = context< RecoveryMachine >().pg;
   epoch_t old_start = pg->info.history.last_epoch_started;
+
+  pg->proc_replica_readable_until(infoevt.from, infoevt.rx_stamp,
+				  infoevt.notify.readable_delta);
+
   if (pg->proc_replica_info(infoevt.from, infoevt.notify.info)) {
     // we got something new ...
     auto_ptr<PriorSet> &prior_set = context< Peering >().prior_set;
