@@ -3662,7 +3662,7 @@ int FileStore::getattr(coll_t cid, const ghobject_t& oid, const char *name, buff
   }
 }
 
-int FileStore::getattrs(coll_t cid, const ghobject_t& oid, map<string,bufferptr>& aset, bool user_only)
+int FileStore::getattrs(coll_t cid, const ghobject_t& oid, map<string,bufferptr>& aset)
 {
   set<string> omap_attrs;
   map<string, bufferlist> omap_aset;
@@ -3681,7 +3681,7 @@ int FileStore::getattrs(coll_t cid, const ghobject_t& oid, map<string,bufferptr>
   if (r >= 0 && !strncmp(buf, XATTR_NO_SPILL_OUT, sizeof(XATTR_NO_SPILL_OUT)))
     spill_out = false;
 
-  r = _fgetattrs(**fd, aset, user_only);
+  r = _fgetattrs(**fd, aset, false);
   if (r < 0) {
     goto out;
   }
@@ -3714,16 +3714,7 @@ int FileStore::getattrs(coll_t cid, const ghobject_t& oid, map<string,bufferptr>
   for (map<string, bufferlist>::iterator i = omap_aset.begin();
 	 i != omap_aset.end();
 	 ++i) {
-    string key;
-    if (user_only) {
-	if (i->first[0] != '_')
-	  continue;
-	if (i->first == "_")
-	  continue;
-	key = i->first.substr(1, i->first.size());
-    } else {
-	key = i->first;
-    }
+    string key(i->first);
     aset.insert(make_pair(key,
 			    bufferptr(i->second.c_str(), i->second.length())));
   }
