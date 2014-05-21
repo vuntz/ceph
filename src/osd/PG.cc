@@ -5375,6 +5375,14 @@ PG::RecoveryState::Started::Started(my_context ctx)
 }
 
 boost::statechart::result
+PG::RecoveryState::Started::react(const IntervalFlush&)
+{
+  context< RecoveryMachine >().pg->recovery_state.end_block_outgoing();
+  return discard_event();
+}
+
+
+boost::statechart::result
 PG::RecoveryState::Started::react(const FlushedEvt&)
 {
   PG *pg = context< RecoveryMachine >().pg;
@@ -5425,6 +5433,14 @@ PG::RecoveryState::Reset::Reset(my_context ctx)
 {
   context< RecoveryMachine >().log_enter(state_name);
   PG *pg = context< RecoveryMachine >().pg;
+
+  pg->recovery_state.clear_blocked_outgoing();
+  if (!pg->osr->flush_commit(
+	new QueuePeeringEvt<IntervalFlush>(
+	  pg, pg->get_osdmap()->get_epoch(), IntervalFlush()))) {
+    pg->recovery_state.begin_block_outgoing();
+  }
+
   pg->flushes_in_progress = 0;
   pg->set_last_peering_reset();
 }
@@ -5434,6 +5450,13 @@ PG::RecoveryState::Reset::react(const FlushedEvt&)
 {
   PG *pg = context< RecoveryMachine >().pg;
   pg->on_flushed();
+  return discard_event();
+}
+
+boost::statechart::result
+PG::RecoveryState::Reset::react(const IntervalFlush&)
+{
+  context< RecoveryMachine >().pg->recovery_state.end_block_outgoing();
   return discard_event();
 }
 
