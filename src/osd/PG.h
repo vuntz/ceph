@@ -1360,40 +1360,47 @@ public:
 
       /* Accessor functions for state methods */
       ObjectStore::Transaction* get_cur_transaction() {
+	assert(state->rctx);
 	assert(state->rctx->transaction);
 	return state->rctx->transaction;
       }
 
       void send_query(pg_shard_t to, const pg_query_t &query) {
+	assert(state->rctx);
 	assert(state->rctx->query_map);
 	(*state->rctx->query_map)[to.osd][spg_t(pg->info.pgid.pgid, to.shard)] =
 	  query;
       }
 
       map<int, map<spg_t, pg_query_t> > *get_query_map() {
+	assert(state->rctx);
 	assert(state->rctx->query_map);
 	return state->rctx->query_map;
       }
 
       map<int, vector<pair<pg_notify_t, pg_interval_map_t> > > *get_info_map() {
+	assert(state->rctx);
 	assert(state->rctx->info_map);
 	return state->rctx->info_map;
       }
 
       list< Context* > *get_on_safe_context_list() {
+	assert(state->rctx);
 	assert(state->rctx->on_safe);
 	return &(state->rctx->on_safe->contexts);
       }
 
       list< Context * > *get_on_applied_context_list() {
+	assert(state->rctx);
 	assert(state->rctx->on_applied);
 	return &(state->rctx->on_applied->contexts);
       }
 
-      RecoveryCtx *get_recovery_ctx() { return state->rctx; }
+      RecoveryCtx *get_recovery_ctx() { return &*(state->rctx); }
 
       void send_notify(pg_shard_t to,
 		       const pg_notify_t &info, const pg_interval_map_t &pi) {
+	assert(state->rctx);
 	assert(state->rctx->notify_list);
 	(*state->rctx->notify_list)[to.osd].push_back(make_pair(info, pi));
       }
@@ -1855,10 +1862,12 @@ public:
 
     RecoveryMachine machine;
     PG *pg;
-    RecoveryCtx *rctx;
+
+    boost::optional<RecoveryCtx> rctx;
 
   public:
-    RecoveryState(PG *pg) : machine(this, pg), pg(pg), rctx(0) {
+    RecoveryState(PG *pg)
+      : machine(this, pg), pg(pg) {
       machine.initiate();
     }
 
