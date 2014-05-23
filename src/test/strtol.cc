@@ -14,6 +14,7 @@
 
 #include "common/strtol.h"
 #include <string>
+#include <map>
 
 #include "gtest/gtest.h"
 
@@ -133,4 +134,73 @@ TEST(StrToL, Error1) {
   test_strict_strtod_err("34.0 garbo");
 
   test_strict_strtof_err("0.05.0");
+}
+
+
+static void test_strict_strtosi(const char *str)
+{
+  std::string err;
+  strict_strtosi(str, &err);
+  ASSERT_EQ(err, "");
+}
+
+static void test_strict_strtosi_units(const std::string& foo,
+                                      char u, const int m)
+{
+  std::string s(foo);
+  s.push_back(u);
+  const char *str = s.c_str();
+  std::string err;
+  uint64_t r = strict_strtosi(str, &err);
+  ASSERT_EQ(err, "");
+
+  str = foo.c_str();
+  std::string err2;
+  long long tmp = strict_strtoll(str, 10, &err2);
+  ASSERT_EQ(err2, "");
+  tmp = (tmp << m);
+  ASSERT_EQ(tmp, r);
+}
+
+TEST(StrToSI, WithUnits) {
+  std::map<char,int> units;
+  units['b'] = 0;
+  units['B'] = 0;
+  units['k'] = 10;
+  units['K'] = 10;
+  units['M'] = 20;
+  units['G'] = 30;
+  units['T'] = 40;
+  units['P'] = 50;
+  units['E'] = 60;
+
+  for (std::map<char,int>::iterator p = units.begin();
+       p != units.end(); ++p) {
+    test_strict_strtosi_units("1024", p->first, p->second);
+    test_strict_strtosi_units("1", p->first, p->second);
+    test_strict_strtosi_units("0", p->first, p->second);
+  }
+}
+
+TEST(StrToSI, WithoutUnits) {
+  test_strict_strtosi("1024");
+  test_strict_strtosi("1152921504606846976");
+  test_strict_strtosi("0");
+}
+
+static void test_strict_strtosi_err(const char *str)
+{
+  std::string err;
+  strict_strtosi(str, &err);
+  ASSERT_NE(err, "");
+}
+
+TEST(StrToSI, Error) {
+  test_strict_strtosi_err("1024F");
+  test_strict_strtosi_err("QDDSA");
+  test_strict_strtosi_err("B");
+  test_strict_strtosi_err("M");
+  test_strict_strtosi_err("BM");
+  test_strict_strtosi_err("B0wef");
+  test_strict_strtosi_err("0m");
 }
