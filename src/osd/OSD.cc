@@ -7357,7 +7357,7 @@ void OSD::handle_pg_query(OpRequestRef op)
 	    it->second.epoch_sent,
 	    osdmap->get_epoch(),
 	    empty,
-	    utime_t()),
+	    map<epoch_t,utime_t>(), utime_t()),
 	  pg_interval_map_t()));
     }
   }

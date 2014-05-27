@@ -1660,7 +1660,7 @@ struct pg_notify_t {
   pg_info_t info;
   shard_id_t to;
   shard_id_t from;
-  utime_t readable_delta; ///< upper bound on pg readable (in seconds)
+  map<epoch_t,utime_t> readable_delta; ///< upper bound on pg readable (in seconds)
   pg_notify_t() :
     query_epoch(0), epoch_sent(0), to(ghobject_t::no_shard()),
     from(ghobject_t::no_shard()) {}
@@ -1670,12 +1670,20 @@ struct pg_notify_t {
     epoch_t query_epoch,
     epoch_t epoch_sent,
     const pg_info_t &info,
-    utime_t readable_delta)
+    const map<epoch_t,utime_t>& readable_until,
+    utime_t now)
     : query_epoch(query_epoch),
       epoch_sent(epoch_sent),
-      info(info), to(to), from(from),
-      readable_delta(readable_delta) {
+      info(info), to(to), from(from) {
     assert(from == info.pgid.shard);
+    for (map<epoch_t,utime_t>::const_iterator p = readable_until.begin();
+	 p != readable_until.end();
+	 ++p) {
+      if (now > p->second)
+	readable_delta[p->first] = utime_t();       // past
+      else
+	readable_delta[p->first] = p->second - now; // still in the future
+    }
   }
   void encode(bufferlist &bl) const;
   void decode(bufferlist::iterator &p);

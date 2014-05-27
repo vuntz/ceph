@@ -2098,8 +2098,6 @@ void pg_notify_t::decode(bufferlist::iterator &bl)
   }
   if (struct_v >= 3) {
     ::decode(readable_delta, bl);
-  } else {
-    readable_delta = utime_t();
   }
   DECODE_FINISH(bl);
 }
@@ -2115,16 +2113,29 @@ void pg_notify_t::dump(Formatter *f) const
     info.dump(f);
     f->close_section();
   }
-  f->dump_float("readable_delta", (double)readable_delta);
+  {
+    f->open_array_section("readable_delta");
+    for (map<epoch_t,utime_t>::const_iterator p = readable_delta.begin();
+	 p != readable_delta.end();
+	 ++p) {
+      f->open_object_section("interval");
+      f->dump_unsigned("start_epoch", p->first);
+      f->dump_float("delta", (double)p->second);
+      f->close_section();
+    }
+    f->close_section();
+  }
 }
 
 void pg_notify_t::generate_test_instances(list<pg_notify_t*>& o)
 {
+  map<epoch_t,utime_t> t;
+  utime_t now = ceph_clock_now(NULL);
   o.push_back(new pg_notify_t(3, ghobject_t::NO_SHARD, 1 ,1 , pg_info_t(),
-			      utime_t()));
-  utime_t t;
-  t.set_from_double(1.2);
-  o.push_back(new pg_notify_t(0, 0, 3, 10, pg_info_t(), t));
+			      t, now));
+  t[1] = now + utime_t(1, 1);
+  t[2] = now + utime_t(2, 2);
+  o.push_back(new pg_notify_t(0, 0, 3, 10, pg_info_t(), t, now));
 }
 
 ostream &operator<<(ostream &lhs, const pg_notify_t &notify)
