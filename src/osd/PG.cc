@@ -308,9 +308,8 @@ void PG::init_primary_up_acting(
   }
 }
 
-void PG::recalc_readable_until()
+void PG::recalc_readable_until(utime_t now)
 {
-  utime_t now = ceph_clock_now(NULL);
   // prune values in the past
   while (!readable_until.empty() &&
 	 readable_until.begin()->second <= now) {

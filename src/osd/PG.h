@@ -464,13 +464,11 @@ public:
   map<epoch_t,utime_t> readable_until;  ///< interval start -> readable_until
 
   /// recalculate readable_until
-  void recalc_readable_until();
+  void recalc_readable_until(utime_t now);
 
-  utime_t get_readable_delta() {
-    recalc_readable_until();
-    if (readable_until != utime_t())
-      return ceph_clock_now(NULL) - readable_until;
-    return utime_t();
+  const map<epoch_t,utime_t>& get_readable_until(utime_t now) {
+    recalc_readable_until(now);
+    return readable_until;
   }
 
   // [primary only] content recovery state
