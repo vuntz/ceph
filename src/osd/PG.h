@@ -461,7 +461,7 @@ public:
   eversion_t  pg_trim_to;
 
   /// lower bound on how much longer we will remain readable
-  utime_t readable_until;
+  map<epoch_t,utime_t> readable_until;  ///< interval start -> readable_until
 
   /// recalculate readable_until
   void recalc_readable_until();

@@ -310,6 +310,13 @@ void PG::init_primary_up_acting(
 
 void PG::recalc_readable_until()
 {
+  utime_t now = ceph_clock_now(NULL);
+  // prune values in the past
+  while (!readable_until.empty() &&
+	 readable_until.begin()->second <= now) {
+    readable_until.erase(readable_until.begin());
+  }
+  epoch_t start = info.history.same_interval_since;
   if (is_primary()) {
     utime_t min;
     vector<HeartbeatStampsRef>::iterator p = hb_stamps.begin();
@@ -324,12 +331,13 @@ void PG::recalc_readable_until()
 	  min = (*p)->last_acked_ping;
       }
     }
-    readable_until = min + pool.get_readable_interval();
+    readable_until[start] = min + pool.get_readable_interval();
   } else if (is_replica()) {
     assert(hb_stamps.size() == 1);
-    readable_until = hb_stamps[0]->last_reply + pool.get_readable_interval();
+    readable_until[start] =
+      hb_stamps[0]->last_reply + pool.get_readable_interval();
   } else {
-    readable_until = utime_t();
+    readable_until[start] = utime_t();
   }
   dout(20) << __func__ << " " << readable_until << dendl;
 }
@@ -4531,6 +4539,9 @@ void PG::start_peering_interval(
   int oldrole = get_role();
 
   unreg_next_scrub();
+
+  // make readable_until value for the current/prior interval accurate
+  recalc_readable_until();
 
   pg_shard_t old_acting_primary = get_primary();
   pg_shard_t old_up_primary = up_primary;
