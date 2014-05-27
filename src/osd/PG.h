@@ -546,7 +546,7 @@ protected:
   set<pg_shard_t>    stray_set;   // non-acting osds that have PG data.
   eversion_t  oldest_update; // acting: lowest (valid) last_update in active set
   map<pg_shard_t, pg_info_t>    peer_info;   // info from peers (stray or prior)
-  map<pg_shard_t, utime_t>      peer_readable_until; ///< from notifies
+  map<epoch_t, map<pg_shard_t, utime_t> >      peer_readable_until; ///< from notifies.  by interval start epoch.
   set<pg_shard_t> peer_purged; // peers purged
   map<pg_shard_t, pg_missing_t> peer_missing;
   set<pg_shard_t> peer_log_requested;  // logs i've requested (and start stamps)
@@ -766,12 +766,8 @@ public:
 		       pg_missing_t& omissing, pg_shard_t from);
   bool proc_replica_info(pg_shard_t from, const pg_info_t &info);
   void proc_replica_readable_until(pg_shard_t from,
-				   utime_t rx_stamp, utime_t delta) {
-    if (delta == utime_t())
-      peer_readable_until[from] = utime_t();
-    else
-      peer_readable_until[from] = rx_stamp + delta;
-  }
+				   utime_t rx_stamp,
+				   const map<epoch_t,utime_t>& delta);
 
   struct LogEntryTrimmer : public ObjectModDesc::Visitor {
     const hobject_t &soid;

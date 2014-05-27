@@ -421,6 +421,20 @@ bool PG::proc_replica_info(pg_shard_t from, const pg_info_t &oinfo)
   return true;
 }
 
+void PG::proc_replica_readable_until(pg_shard_t from,
+				     utime_t rx_stamp,
+				     const map<epoch_t,utime_t>& delta)
+{
+  for (map<epoch_t,utime_t>::const_iterator p = delta.begin();
+       p != delta.end();
+       ++p) {
+    if (p->second == utime_t())
+      peer_readable_until[p->first][from] = utime_t();
+    else
+      peer_readable_until[p->first][from] = rx_stamp + p->second;
+  }
+}
+
 void PG::remove_snap_mapped_object(
   ObjectStore::Transaction &t, const hobject_t &soid)
 {
