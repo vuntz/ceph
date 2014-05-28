@@ -519,8 +519,11 @@ void Objecter::_scan_requests(OSDSession *s,
 {
   assert(rwlock.is_wlocked());
 
+  list<uint64_t> unregister_lingers;
+
   RWLock::Context lc(rwlock, RWLock::Context::TakenForWrite);
-  RWLock::WLocker wl(s->lock);
+
+  s->lock.get_write();
 
   // check for changed linger mappings (_before_ regular ops)
   map<ceph_tid_t,LingerOp*>::iterator lp = s->linger_ops.begin();
@@ -528,6 +531,7 @@ void Objecter::_scan_requests(OSDSession *s,
     LingerOp *op = lp->second;
     ++lp;   // check_linger_pool_dne() may touch linger_ops; prevent iterator invalidation
     ldout(cct, 10) << " checking linger op " << op->linger_id << dendl;
+    bool unregister;
     int r = _calc_target(&op->target);
     switch (r) {
     case RECALC_OP_TARGET_NO_ACTION:
@@ -542,7 +546,11 @@ void Objecter::_scan_requests(OSDSession *s,
       _linger_cancel_map_check(op);
       break;
     case RECALC_OP_TARGET_POOL_DNE:
-      _check_linger_pool_dne(op);
+      _check_linger_pool_dne(op, &unregister);
+      if (unregister) {
+        ldout(cct, 10) << " need to unregister linger op " << op->linger_id << dendl;
+        unregister_lingers.push_back(op->linger_id);
+      }
       break;
     }
   }
@@ -599,6 +607,12 @@ void Objecter::_scan_requests(OSDSession *s,
       _check_command_map_dne(c);
       break;
     }     
+  }
+
+  s->lock.unlock();
+
+  for (list<uint64_t>::iterator iter = unregister_lingers.begin(); iter != unregister_lingers.end(); ++iter) {
+    _unregister_linger(*iter);
   }
 }
 
@@ -964,12 +978,19 @@ void Objecter::C_Linger_Map_Latest::finish(int r)
   if (op->map_dne_bound == 0)
     op->map_dne_bound = latest;
 
-  objecter->_check_linger_pool_dne(op);
+  bool unregister;
+  objecter->_check_linger_pool_dne(op, &unregister);
+
+  if (unregister) {
+    objecter->_unregister_linger(op->linger_id);
+  }
 }
 
-void Objecter::_check_linger_pool_dne(LingerOp *op)
+void Objecter::_check_linger_pool_dne(LingerOp *op, bool *need_unregister)
 {
   assert(rwlock.is_wlocked());
+
+  *need_unregister = false;
 
   ldout(cct, 10) << "_check_linger_pool_dne linger_id " << op->linger_id
 		 << " current " << osdmap->get_epoch()
@@ -983,7 +1004,7 @@ void Objecter::_check_linger_pool_dne(LingerOp *op)
       if (op->on_reg_commit) {
 	op->on_reg_commit->complete(-ENOENT);
       }
-      _unregister_linger(op->linger_id);
+      *need_unregister = true;
     }
   } else {
     _send_linger_map_check(op);
