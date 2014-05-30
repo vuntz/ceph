@@ -7520,8 +7520,8 @@ void PG::RecoveryState::start_handle(RecoveryCtx *new_ctx) {
       assert(!messages_pending_flush);
       rctx = *new_ctx;
     }
+    rctx->start_time = ceph_clock_now(pg->cct);
   }
-  rctx->start_time = ceph_clock_now(pg->cct);
 }
 
 void PG::RecoveryState::begin_block_outgoing() {
@@ -7549,8 +7549,10 @@ void PG::RecoveryState::end_block_outgoing() {
 }
 
 void PG::RecoveryState::end_handle() {
-  utime_t dur = ceph_clock_now(pg->cct) - rctx->start_time;
-  machine.event_time += dur;
+  if (rctx) {
+    utime_t dur = ceph_clock_now(pg->cct) - rctx->start_time;
+    machine.event_time += dur;
+  }
 
   machine.event_count++;
   rctx = boost::optional<RecoveryCtx>();
