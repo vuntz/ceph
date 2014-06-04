@@ -139,11 +139,19 @@ case $1 in
     --btrfs | --fsmount)
 	    dofsmount=1
 	    ;;
+    --xfs)
+	    doxfs=1
+	    dobtrfs=0
+	    ;;
     --nobtrfs | --nofsmount)
 	    dofsmount=0
 	    ;;
     --btrfsumount | --fsumount)
 	    dofsumount=1
+	    ;;
+    --xfsumount)
+	    doxfsumount=1
+	    dobtrfsumount=0
 	    ;;
     --conf | -c)
 	    [ -z "$2" ] && usage_exit
